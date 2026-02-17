@@ -1,0 +1,99 @@
+# ============================================================================
+# Multiplex Imaging Analysis – Experiment Configuration
+# ============================================================================
+#
+# This file defines a complete experiment: which machines/ROIs to process,
+# which markers to cluster on, and all stage parameters.
+#
+# Copy this template as config.yaml and fill in your experiment details.
+# ============================================================================
+
+experiment_name: "my_experiment"
+base_dir: "./experiments"   # All stage outputs go under <base_dir>/<experiment_name>/
+
+# ---------------------------------------------------------------------------
+# Machines: each machine is a named group of ROIs from the same instrument
+# ---------------------------------------------------------------------------
+machines:
+  machine_A:
+    raw_tiff_dir: "./data/tiffs/machine_A"        # Stage 1 input
+    feature_csv_dir: "./data/raw/mrd"              # Stage 2 output / Stage 3 input
+    roi_list: []  # Leave empty to auto-discover all CSVs in feature_csv_dir
+
+  machine_B:
+    raw_tiff_dir: "./data/tiffs/machine_B"
+    feature_csv_dir: "./data/raw/mrd"
+    roi_list: []
+
+# ---------------------------------------------------------------------------
+# Column configuration
+# ---------------------------------------------------------------------------
+meta_columns:
+  - "Cell Id"
+  - "Nuc X"
+  - "Nuc Y Inv"
+  - "region_num"
+  - "unique_region"
+
+# ---------------------------------------------------------------------------
+# Markers to use for clustering (Stage 3)
+# These must match column names AFTER stripping "Biomarker Exp" suffix.
+# ---------------------------------------------------------------------------
+selected_markers:
+  - "Arginase 1 REAL1137"
+  - "CD11b REA1321"
+  - "CD11c REA1310"
+  - "CD14 REA1314"
+  - "CD15 VIMC6"
+  - "CD16 REA1324"
+  - "CD163 REA1309"
+  - "CD20 REAL1069"
+  - "CD235a REA175"
+  - "CD3 REAL1097"
+  - "CD31 REA1312"
+  - "CD34 REAL1217"
+  - "CD38 REAL719"
+  - "CD4 REA1307"
+  - "CD45 5B1"
+  - "CD68 REAL1346"
+  - "CD73 REAL1172"
+  - "CD79a REA1168"
+  - "CD8a REA1024"
+  - "FoxP3 REA1253"
+  - "HLA DR REAL550"
+  - "Ki 67 REAL1047"
+  - "Mast Cell Tryptase REAL798"
+  - "PAX 5 REA140"
+  - "Podoplanin REA446"
+
+# ---------------------------------------------------------------------------
+# Stage 1: Segmentation (Mesmer)
+# ---------------------------------------------------------------------------
+segmentation:
+  image_mpp: 0.176
+  maxima_threshold: 0.075
+  maxima_smooth: 0
+  interior_threshold: 0.2
+  interior_smooth: 2
+  small_objects_threshold: 15
+  fill_holes_threshold: 15
+  radius: 2
+  dapi_only: true
+
+# ---------------------------------------------------------------------------
+# Stage 3: Initial Clustering
+# ---------------------------------------------------------------------------
+clustering:
+  n_neighbors: 9
+  n_pcs: 30
+  resolution: 1.0
+  random_seed: 42
+
+# ---------------------------------------------------------------------------
+# Stage 6: Subclustering
+# ---------------------------------------------------------------------------
+subclustering:
+  resolution_min: 0.1
+  resolution_max: 1.5
+  resolution_step: 0.1
+  default_resolution: 0.5
