@@ -217,10 +217,14 @@ def subcluster_group(
     resolution: float = 0.5,
     n_neighbors: int = 9,
     n_pcs: int = 30,
+    unselected_features: list[str] | None = None,
 ) -> ad.AnnData:
     """Subcluster cells belonging to a specific meta-cluster group.
 
     Extracts cells, re-normalises, and runs a fresh Leiden clustering.
+    When *unselected_features* is provided the extra marker columns
+    (stored in ``adata.obs``) are double-z-normalised and concatenated
+    with ``X`` so that **all** markers drive the subclustering.
 
     Parameters
     ----------
@@ -234,11 +238,16 @@ def subcluster_group(
         Leiden resolution for subclustering.
     n_neighbors, n_pcs : int
         KNN parameters.
+    unselected_features : list[str], optional
+        Extra marker columns in ``adata.obs`` to include in the
+        subclustering feature matrix (will be double-z-normalised).
 
     Returns
     -------
     ad.AnnData
         Subset AnnData with ``sub_cluster`` in ``.obs``.
+        If *unselected_features* was provided, ``X`` and ``var_names``
+        are expanded to cover all markers.
     """
     mask = adata.obs[group_col] == group_name
     subset = adata[mask].copy()
@@ -248,9 +257,38 @@ def subcluster_group(
         subset.obs["sub_cluster"] = "0"
         return subset
 
-    # Re-normalise X
     from sklearn.preprocessing import StandardScaler
 
+    # --- Build combined feature matrix (selected + unselected) ----------
+    selected_arr = np.asarray(
+        subset.X if not hasattr(subset.X, "toarray") else subset.X.toarray(),
+        dtype=np.float64,
+    )
+    selected_names = list(subset.var_names)
+
+    if unselected_features:
+        # Keep only columns that actually exist in this subset's obs
+        extra_cols = [c for c in unselected_features if c in subset.obs.columns]
+        if extra_cols:
+            extra_arr = subset.obs[extra_cols].values.astype(np.float64)
+            extra_arr = double_z_norm(extra_arr)
+            combined = np.concatenate([selected_arr, extra_arr], axis=1)
+            all_names = selected_names + extra_cols
+        else:
+            combined = selected_arr
+            all_names = selected_names
+    else:
+        combined = selected_arr
+        all_names = selected_names
+
+    # Rebuild subset AnnData with expanded feature matrix
+    subset = ad.AnnData(
+        X=combined,
+        obs=subset.obs.copy(),
+    )
+    subset.var_names = pd.Index(all_names)
+
+    # Re-normalise the full X
     scaler = StandardScaler()
     subset.X = scaler.fit_transform(subset.X)
 
@@ -269,6 +307,7 @@ def subcluster_at_resolutions(
     group_col: str = "cluster_group",
     n_neighbors: int = 9,
     n_pcs: int = 30,
+    unselected_features: list[str] | None = None,
 ) -> dict[float, ad.AnnData]:
     """Run subclustering at multiple resolutions for comparison.
 
@@ -284,6 +323,8 @@ def subcluster_at_resolutions(
         Column with group labels.
     n_neighbors, n_pcs : int
         KNN parameters.
+    unselected_features : list[str], optional
+        Extra marker columns in ``adata.obs`` to include.
 
     Returns
     -------
@@ -296,6 +337,7 @@ def subcluster_at_resolutions(
         results[res] = subcluster_group(
             adata, group_name, group_col, resolution=res,
             n_neighbors=n_neighbors, n_pcs=n_pcs,
+            unselected_features=unselected_features,
         )
         n_clusters = results[res].obs["sub_cluster"].nunique()
         print(f"    → {n_clusters} sub-clusters, {results[res].n_obs} cells")

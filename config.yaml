@@ -8,7 +8,7 @@
 # Copy this template as config.yaml and fill in your experiment details.
 # ============================================================================
 
-experiment_name: "my_experiment"
+experiment_name: "exp-04-03-2026"  # Used for naming output directories
 base_dir: "./experiments"   # All stage outputs go under <base_dir>/<experiment_name>/
 
 # ---------------------------------------------------------------------------
@@ -17,12 +17,12 @@ base_dir: "./experiments"   # All stage outputs go under <base_dir>/<experiment_
 machines:
   machine_A:
     raw_tiff_dir: "./data/tiffs/machine_A"        # Stage 1 input
-    feature_csv_dir: "./data/raw/mrd"              # Stage 2 output / Stage 3 input
+    feature_csv_dir: "./data/raw/mrd_A"              # Stage 2 output / Stage 3 input
     roi_list: []  # Leave empty to auto-discover all CSVs in feature_csv_dir
 
   machine_B:
     raw_tiff_dir: "./data/tiffs/machine_B"
-    feature_csv_dir: "./data/raw/mrd"
+    feature_csv_dir: "./data/raw/mrd_B"
     roi_list: []
 
 # ---------------------------------------------------------------------------
@@ -57,7 +57,7 @@ selected_markers:
   - "CD45 5B1"
   - "CD68 REAL1346"
   - "CD73 REAL1172"
-  - "CD79a REA1168"
+  - "Alexa647 anti rabbit1"
   - "CD8a REA1024"
   - "FoxP3 REA1253"
   - "HLA DR REAL550"
@@ -84,16 +84,16 @@ segmentation:
 # Stage 3: Initial Clustering
 # ---------------------------------------------------------------------------
 clustering:
-  n_neighbors: 9
+  n_neighbors: 20 
   n_pcs: 30
   resolution: 1.0
   random_seed: 42
 
 # ---------------------------------------------------------------------------
 # Stage 6: Subclustering
+# Resolution ranges are set directly in the 06_subclustering notebook
+# (per-group, during interactive exploration).
 # ---------------------------------------------------------------------------
 subclustering:
-  resolution_min: 0.1
-  resolution_max: 1.5
-  resolution_step: 0.1
-  default_resolution: 0.5
+  n_neighbors: 20 
+  n_pcs: 30

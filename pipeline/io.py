@@ -195,6 +195,17 @@ def save_roi_assignments(
                 if col in adata.obs.columns and col not in region_data.columns:
                     region_data[col] = adata.obs.loc[mask, col]
 
+        # Sanitise string columns for naive CSV parsers (e.g. MACSiQview):
+        # replace commas (break column alignment) and spaces (may act as
+        # delimiters or truncate labels) with safe alternatives.
+        str_cols = region_data.select_dtypes(include="object").columns
+        for col in str_cols:
+            region_data[col] = (
+                region_data[col]
+                .str.replace(",", ";", regex=False)
+                .str.replace(" ", "_", regex=False)
+            )
+
         safe_name = str(region).replace("/", "_").replace("\\", "_")
         outpath = output_dir / f"{safe_name}_cluster_assignments.csv"
         region_data.to_csv(outpath, index=False)

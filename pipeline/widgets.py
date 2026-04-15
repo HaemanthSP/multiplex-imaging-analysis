@@ -18,6 +18,7 @@ from IPython.display import display, clear_output
 def create_cluster_label_widget(
     cluster_ids: list[str],
     save_callback: Callable[[pd.DataFrame], None] | None = None,
+    existing_labels: pd.DataFrame | None = None,
 ) -> widgets.VBox:
     """Create an interactive widget for labelling clusters and assigning groups.
 
@@ -27,16 +28,30 @@ def create_cluster_label_widget(
         List of cluster IDs from Leiden clustering.
     save_callback : callable, optional
         Function called with the resulting DataFrame when Save is clicked.
+    existing_labels : pd.DataFrame, optional
+        Previously saved labels (columns: cluster_id, label, group).
+        If provided, the widget fields are pre-filled for editing.
 
     Returns
     -------
     widgets.VBox
         Widget to display in a notebook.
     """
+    # Build a lookup from existing labels if provided
+    _existing: dict[str, tuple[str, str]] = {}
+    if existing_labels is not None:
+        for _, row in existing_labels.iterrows():
+            _existing[str(row["cluster_id"])] = (
+                str(row.get("label", "")),
+                str(row.get("group", "")),
+            )
+
     label_inputs = {}
     group_inputs = {}
 
-    header = widgets.HTML("<h3>Cluster Labelling & Grouping</h3>")
+    is_edit = existing_labels is not None
+    mode_text = " (editing existing labels)" if is_edit else ""
+    header = widgets.HTML(f"<h3>Cluster Labelling & Grouping{mode_text}</h3>")
     instructions = widgets.HTML(
         "<p>For each cluster, enter a <b>cell-type label</b> "
         "(e.g. 'CD8 T Cell') and a <b>group name</b> "
@@ -45,14 +60,15 @@ def create_cluster_label_widget(
 
     rows = []
     for cid in sorted(cluster_ids, key=lambda x: int(x) if x.isdigit() else x):
+        prev_label, prev_group = _existing.get(str(cid), ("", ""))
         lbl = widgets.Text(
-            value="",
+            value=prev_label,
             placeholder="e.g. CD8 T Cell",
             description=f"Cluster {cid}:",
             layout=widgets.Layout(width="350px"),
         )
         grp = widgets.Text(
-            value="",
+            value=prev_group,
             placeholder="e.g. T Cells",
             description="Group:",
             layout=widgets.Layout(width="350px"),

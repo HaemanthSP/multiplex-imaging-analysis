@@ -48,13 +48,22 @@ class ClusteringConfig:
 
 
 @dataclass
+class SubclusterGroupConfig:
+    """Resolution config for one subclustering group (fine / coarse)."""
+
+    clusters: list[str] = field(default_factory=list)
+    resolution_min: float = 0.3
+    resolution_max: float = 1.5
+    resolution_step: float = 0.5
+
+
+@dataclass
 class SubclusteringConfig:
     """Subclustering parameters."""
 
-    resolution_min: float = 0.1
-    resolution_max: float = 1.5
-    resolution_step: float = 0.1
-    default_resolution: float = 0.5
+    n_neighbors: int = 15
+    n_pcs: int = 15
+    groups: dict[str, SubclusterGroupConfig] = field(default_factory=dict)
 
 
 @dataclass
@@ -157,7 +166,19 @@ def load_config(config_path: str | Path) -> ExperimentConfig:
     clust_config = ClusteringConfig(**{k: v for k, v in clust_raw.items() if k in ClusteringConfig.__dataclass_fields__})
 
     sub_raw = raw.get("subclustering", {})
-    sub_config = SubclusteringConfig(**{k: v for k, v in sub_raw.items() if k in SubclusteringConfig.__dataclass_fields__})
+    sub_groups: dict[str, SubclusterGroupConfig] = {}
+    for gname, gdata in sub_raw.get("groups", {}).items():
+        sub_groups[gname] = SubclusterGroupConfig(
+            clusters=gdata.get("clusters", []),
+            resolution_min=gdata.get("resolution_min", 0.3),
+            resolution_max=gdata.get("resolution_max", 1.5),
+            resolution_step=gdata.get("resolution_step", 0.5),
+        )
+    sub_config = SubclusteringConfig(
+        n_neighbors=sub_raw.get("n_neighbors", 15),
+        n_pcs=sub_raw.get("n_pcs", 15),
+        groups=sub_groups,
+    )
 
     default_meta = ["Cell Id", "Nuc X", "Nuc Y Inv", "region_num", "unique_region"]
 
